@@ -1,6 +1,6 @@
 {
   "name": "@qrcommunication/viva-local-terminal-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TypeScript SDK for the Viva.com Local Terminal API (/pos/v1/) — peer-to-peer (P2P) communication directly with an EFT POS terminal over the LAN. No cloud, no authentication, self-signed TLS aware.",
   "keywords": [
     "viva",
