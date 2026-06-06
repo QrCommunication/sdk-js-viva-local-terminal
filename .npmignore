@@ -1,0 +1,14 @@
+src/
+tests/
+docs/
+.github/
+node_modules/
+coverage/
+*.test.ts
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+.prettierrc*
+CLAUDE.md
+AGENTS.md
+llms.txt

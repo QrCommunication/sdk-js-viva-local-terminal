@@ -1,0 +1,64 @@
+# @qrcommunication/viva-local-terminal-sdk
+
+> TypeScript SDK for the Viva.com Local Terminal API (/pos/v1/). PEER-TO-PEER:
+> the client talks directly to an EFT POS card terminal over the LAN. No cloud
+> endpoint, no authentication, self-signed TLS, plain-string 400 error bodies.
+
+## Core model
+
+- Base URL is the terminal's own IP and port, e.g. `https://192.168.1.50:8080`.
+- No `Authorization` header is ever sent — the closed-network P2P protocol is
+  unauthenticated by design (per the official Viva spec).
+- The terminal serves HTTPS with a self-signed certificate. Pass
+  `verifyTls: false` to accept it on a trusted closed LAN (the SDK wires an
+  undici Agent with rejectUnauthorized=false), or install the terminal CA and
+  keep `verifyTls: true` (default).
+- Errors: the API returns a PLAIN STRING body on 400. `ApiError` exposes it
+  verbatim via `.message`, `.getErrorText()` and `.responseBody.raw`. Transport
+  failures (unreachable terminal) throw `ApiError` with `httpStatus === 0`.
+- Amounts are integers in cents. `currencyCode` is ISO 4217 numeric (978 = EUR).
+- ISV endpoint variants differ only by a trailing slash; enable with
+  `useIsvEndpoints: true`.
+
+## Install
+
+npm install @qrcommunication/viva-local-terminal-sdk
+Requires Node 18+ (global fetch; bundles undici for self-signed TLS). ESM + CJS.
+
+## Client
+
+new VivaLocalTerminalClient({
+  terminalBaseUrl: string,   // required, e.g. "https://192.168.1.50:8080"
+  verifyTls?: boolean,       // default true; false => accept self-signed cert
+  useIsvEndpoints?: boolean, // default false; true => trailing-slash ISV paths
+  timeout?: number,          // ms, default 30000
+  fetch?: typeof fetch,      // override (testing)
+  dispatcher?: undici.Dispatcher, // custom TLS/agent
+})
+
+## Resources
+
+client.transactions.sale({ sessionId, amount, currencyCode?, merchantReference?, customerTrns?, preauth?, tipAmount?, paymentMethod?, showTransactionResult?, showReceipt?, skipSurcharge?, saleToAcquirerData?, maxInstalments?, aade*?, fiscalisationData?, isvDetails? })  -> POST /pos/v1/sale
+client.transactions.capturePreauth({ sessionId, amount, transactionId, ... })   -> POST /pos/v1/preauth-completion
+client.transactions.refund({ sessionId, amount, transactionId, ... })           -> POST /pos/v1/refund
+client.transactions.unreferencedRefund({ sessionId, amount, ... })              -> POST /pos/v1/unreferenced-refund
+client.transactions.abort(sessionId)                                            -> POST /pos/v1/abort
+client.transactions.aadeFimControl(token)                                       -> POST /pos/v1/aade-fim-control
+client.transactions.retrieve({ cardNumber?, orderCode?, transactionTypes?, transactionStatus?, startDate?, endDate?, isAadeAutonomouslyOnly? }) -> GET /pos/v1/transactions
+client.sessions.get(sessionId)                                                  -> GET /pos/v1/sessions/{id}
+client.device.screenControl(wakeUpLock)                                         -> POST /pos/v1/awake-lock
+client.device.brightness(value /* (0,1] */)                                     -> POST /pos/v1/brightness
+
+## Enums
+
+PaymentMethod = CardPresent | Iris
+SessionState  = PROCESSING | BUSY_ERROR | SERVER_ERROR | SESSION_NOT_FOUND_ERROR | SUCCESS | FAILURE
+SessionType   = SALE | CAPTURE_PREAUTH | CANCEL | UNREFERENCED_REFUND | ABORT
+TransactionTypeId = SALE(5) | REFUND(4) | REVERSAL(7) | IRIS_SALE(60) | IRIS_REFUND(61) | IRIS_VOID(85)
+
+## Typical flow
+
+1. Generate a sessionId (UUID).
+2. transactions.sale({ sessionId, amount, currencyCode }) -> { state: "PROCESSING" }
+3. Poll sessions.get(sessionId) until state is SUCCESS or FAILURE.
+4. Read session.payloadData for the completed transaction details.
