@@ -39,8 +39,7 @@ export function mockFetch(responses: MockedResponse[]): MockedFetch {
     async (
       input: Parameters<typeof fetch>[0],
       init?:
-        | (Parameters<typeof fetch>[1] & { dispatcher?: unknown })
-        | undefined,
+        (Parameters<typeof fetch>[1] & { dispatcher?: unknown }) | undefined,
     ) => {
       const url =
         input instanceof URL

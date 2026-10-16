@@ -129,9 +129,7 @@ export interface RetrieveTransactionsParams {
   cardNumber?: string;
   orderCode?: string;
   transactionTypes?:
-    | TransactionTypeId
-    | number
-    | Array<TransactionTypeId | number>;
+    TransactionTypeId | number | Array<TransactionTypeId | number>;
   transactionStatus?: string;
   /** ISO 8601 lower bound. */
   startDate?: string;
